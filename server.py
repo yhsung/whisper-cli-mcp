@@ -75,16 +75,16 @@ async def transcribe_audio(args: Dict[str, Any]) -> List[TextContent]:
     model = args.get("model", "base")
     language = args.get("language")
     output_format = args.get("output_format", "txt")
-    
+
     # Build whisper command
-    cmd = ["whisper", audio_file, "--model", model, "--output_format", output_format]
-    
+    cmd = ["whisper-cli", audio_file, "--model", model, "--output_format", output_format]
+
     if language:
         cmd.extend(["--language", language])
-    
+
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        
+
         if result.returncode == 0:
             return [TextContent(
                 type="text",
@@ -105,12 +105,12 @@ async def transcribe_audio(args: Dict[str, Any]) -> List[TextContent]:
 async def execute_shell_command(args: Dict[str, Any]) -> List[TextContent]:
     command = args["command"]
     working_directory = args.get("working_directory")
-    
+
     # Security: Basic command validation
     dangerous_commands = ["rm -rf", "sudo", "chmod 777", "dd if=", "> /dev/"]
     if any(dangerous in command for dangerous in dangerous_commands):
         return [TextContent(type="text", text="Command contains potentially dangerous operations and was blocked.")]
-    
+
     try:
         result = subprocess.run(
             command,
@@ -120,15 +120,15 @@ async def execute_shell_command(args: Dict[str, Any]) -> List[TextContent]:
             timeout=30,
             cwd=working_directory
         )
-        
+
         output = f"Exit code: {result.returncode}\n\n"
         if result.stdout:
             output += f"Stdout:\n{result.stdout}\n\n"
         if result.stderr:
             output += f"Stderr:\n{result.stderr}"
-        
+
         return [TextContent(type="text", text=output)]
-    
+
     except subprocess.TimeoutExpired:
         return [TextContent(type="text", text="Command timed out after 30 seconds")]
     except Exception as e:
